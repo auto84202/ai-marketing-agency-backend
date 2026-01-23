@@ -7,6 +7,12 @@ import pinoHttp from "pino-http";
 import * as bodyParser from 'body-parser';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
+import { webcrypto } from 'crypto';
+
+// Polyfill crypto for @nestjs/schedule compatibility
+if (typeof global.crypto === 'undefined') {
+    (global as any).crypto = webcrypto;
+}
 
 async function bootstrap() {
     const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true, abortOnError: false });
