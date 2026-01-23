@@ -1,0 +1,1086 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                     String                  @id @default(cuid())
+  email                  String                  @unique
+  password               String?
+  name                   String?
+  role                   Role                    @default(USER)
+  company                String?
+  phone                  String?
+  avatar                 String?
+  isActive               Boolean                 @default(true)
+  lastLoginAt            DateTime?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  aiContent              AIContent[]
+  apiUsage               APIUsage[]
+  adCampaigns            AdCampaign[]
+  adminAuditLogs         AdminAuditLog[]
+  budgetOptimizations    BudgetOptimization[]
+  campaigns              Campaign[]
+  chatbots               Chatbot[]
+  clients                Client[]
+  contentRecommendations ContentRecommendation[]
+  engagementAnalytics    EngagementAnalytics[]
+  invoices               Invoice[]
+  keywordResearch        KeywordResearch[]
+  predictiveAnalytics    PredictiveAnalytics[]
+  reports                Report[]
+  seoRankings            SEORanking[]
+  socialMediaAccounts    SocialMediaAccount[]
+  socialPosts            SocialPost[]
+  subscriptions          Subscription?
+  passwordResetTokens    PasswordResetToken[]
+  workflowRuns           WorkflowRun[]
+  campaignAssets         CampaignAsset[]
+  hashtagSearches        HashtagSearch[]
+  keywordCampaigns       KeywordCampaign[]
+  socialAccounts         SocialAccount[]
+  scraperJobs            ScraperJob[]
+}
+
+model Campaign {
+  id          String       @id @default(cuid())
+  userId      String
+  clientId    String?
+  name        String
+  description String?
+  type        CampaignType
+  plan        String?
+  status      String       @default("draft")
+  startDate   DateTime?
+  endDate     DateTime?
+  budget      Float?
+  settings    Json?
+  metrics     Json?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  aiContent   AIContent[]
+  client      Client?      @relation(fields: [clientId], references: [id])
+  user        User         @relation(fields: [userId], references: [id])
+  chatbots    Chatbot[]
+  socialPosts SocialPost[]
+  workflowRuns WorkflowRun[]
+  campaignKeywords CampaignKeyword[]
+  campaignAssets CampaignAsset[]
+}
+
+model Report {
+  id          String   @id @default(cuid())
+  userId      String
+  clientId    String?
+  periodStart DateTime
+  periodEnd   DateTime
+  metrics     Json
+  pdfUrl      String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  client      Client?  @relation(fields: [clientId], references: [id])
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Subscription {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  stripeCustomerId String?
+  stripeSubId      String?
+  plan             String?
+  status           String?
+  currentPeriodEnd DateTime?
+  user             User      @relation(fields: [userId], references: [id])
+}
+
+model Invoice {
+  id              String    @id @default(cuid())
+  userId          String
+  stripeInvoiceId String?
+  amount          Int
+  currency        String    @default("usd")
+  status          String    @default("draft")
+  dueDate         DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id])
+}
+
+model Client {
+  id        String     @id @default(cuid())
+  userId    String
+  name      String
+  email     String     @unique
+  company   String?
+  phone     String?
+  website   String?
+  industry  String?
+  budget    Int?
+  isActive  Boolean    @default(true)
+  notes     String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  campaigns Campaign[]
+  chatbots  Chatbot[]
+  user      User       @relation(fields: [userId], references: [id])
+  reports   Report[]
+}
+
+model AIContent {
+  id              String            @id @default(cuid())
+  userId          String
+  campaignId      String?
+  type            ContentType
+  title           String?
+  content         String
+  prompt          String
+  provider        AIServiceProvider
+  model           String?
+  tokensUsed      Int?
+  cost            Float?
+  status          String            @default("generated")
+  metadata        Json?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  approvalStatus  String            @default("pending")
+  approvedAt      DateTime?
+  approvedBy      String?
+  isActive        Boolean           @default(true)
+  parentId        String?
+  rejectionReason String?
+  reviewerNotes   String?
+  version         Int               @default(1)
+  campaign        Campaign?         @relation(fields: [campaignId], references: [id])
+  parent          AIContent?        @relation("ContentVersions", fields: [parentId], references: [id])
+  versions        AIContent[]       @relation("ContentVersions")
+  user            User              @relation(fields: [userId], references: [id])
+}
+
+model SocialPost {
+  id               String                @id @default(cuid())
+  userId           String
+  campaignId       String?
+  platform         SocialPlatform
+  content          String
+  mediaUrls        String
+  hashtags         String
+  scheduledAt      DateTime?
+  postedAt         DateTime?
+  metrics          Json?
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+  aiGenerated      Boolean               @default(false)
+  autoScheduled    Boolean               @default(false)
+  caption          String?
+  engagementScore  Float?
+  generationPrompt String?
+  optimalPostTime  DateTime?
+  performanceData  Json?
+  platformPostId   String?
+  targetAudience   Json?
+  trendTags        Json?
+  status           PostStatus            @default(DRAFT)
+  comments         SocialComment[]
+  campaign         Campaign?             @relation(fields: [campaignId], references: [id])
+  user             User                  @relation(fields: [userId], references: [id])
+  variations       SocialPostVariation[]
+}
+
+model Chatbot {
+  id            String         @id @default(cuid())
+  userId        String
+  clientId      String?
+  campaignId    String?
+  name          String
+  description   String?
+  status        ChatbotStatus  @default(INACTIVE)
+  platform      String?
+  webhookUrl    String?
+  apiKey        String?
+  settings      Json?
+  trainingData  Json?
+  analytics     Json?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  campaign      Campaign?      @relation(fields: [campaignId], references: [id])
+  client        Client?        @relation(fields: [clientId], references: [id])
+  user          User           @relation(fields: [userId], references: [id])
+  conversations Conversation[]
+}
+
+model Conversation {
+  id          String   @id @default(cuid())
+  chatbotId   String
+  sessionId   String
+  userMessage String
+  botResponse String
+  intent      String?
+  confidence  Float?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  chatbot     Chatbot  @relation(fields: [chatbotId], references: [id])
+}
+
+model APIUsage {
+  id          String            @id @default(cuid())
+  userId      String
+  provider    AIServiceProvider
+  service     String
+  endpoint    String
+  tokensUsed  Int?
+  cost        Float?
+  requestTime DateTime          @default(now())
+  user        User              @relation(fields: [userId], references: [id])
+}
+
+model SEOKeyword {
+  id          String   @id @default(cuid())
+  keyword     String
+  volume      Int?
+  difficulty  Float?
+  cpc         Float?
+  competition String?
+  trends      Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model KeywordResearch {
+  id           String   @id @default(cuid())
+  userId       String
+  topic        String
+  keywords     Json
+  aiAnalysis   Json?
+  searchVolume Int?
+  competition  String?
+  trends       Json?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model AdCampaign {
+  id               String          @id @default(cuid())
+  userId           String
+  name             String
+  platform         AdPlatform
+  type             AdType
+  status           AdStatus        @default(DRAFT)
+  budget           Float
+  dailyBudget      Float?
+  bidStrategy      BidStrategy
+  targetAudience   Json
+  keywords         Json?
+  demographics     Json?
+  interests        Json?
+  locations        Json?
+  devices          Json?
+  schedules        Json?
+  creativeSets     Json
+  landingPage      String?
+  trackingCode     String?
+  conversionGoals  Json?
+  metrics          Json?
+  performanceScore Float?
+  predictedROI     Float?
+  aiOptimization   Json?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+  abTests          ABTest[]
+  user             User            @relation(fields: [userId], references: [id])
+  performanceData  AdPerformance[]
+  adVariants       AdVariant[]
+}
+
+model AdVariant {
+  id                String     @id @default(cuid())
+  adCampaignId      String
+  name              String
+  headline          String
+  description       String
+  imageUrl          String?
+  videoUrl          String?
+  ctaButton         String?
+  landingPage       String?
+  isActive          Boolean    @default(true)
+  performance       Json?
+  aiScore           Float?
+  createdAt         DateTime   @default(now())
+  updatedAt         DateTime   @updatedAt
+  abTestsAsVariantA ABTest[]   @relation("ABTestVariantA")
+  abTestsAsVariantB ABTest[]   @relation("ABTestVariantB")
+  adCampaign        AdCampaign @relation(fields: [adCampaignId], references: [id])
+}
+
+model ABTest {
+  id                      String       @id @default(cuid())
+  adCampaignId            String
+  variantAId              String
+  variantBId              String
+  name                    String
+  hypothesis              String?
+  status                  ABTestStatus @default(ACTIVE)
+  trafficSplit            Float        @default(0.5)
+  winnerId                String?
+  confidenceLevel         Float?
+  statisticalSignificance Float?
+  testDuration            Int?
+  minSampleSize           Int?         @default(1000)
+  currentSampleSize       Int?         @default(0)
+  startDate               DateTime?
+  endDate                 DateTime?
+  results                 Json?
+  mlRecommendations       Json?
+  createdAt               DateTime     @default(now())
+  updatedAt               DateTime     @updatedAt
+  adCampaign              AdCampaign   @relation(fields: [adCampaignId], references: [id])
+  variantA                AdVariant    @relation("ABTestVariantA", fields: [variantAId], references: [id])
+  variantB                AdVariant    @relation("ABTestVariantB", fields: [variantBId], references: [id])
+}
+
+model AdPerformance {
+  id           String     @id @default(cuid())
+  adCampaignId String
+  date         DateTime
+  impressions  Int
+  clicks       Int
+  conversions  Int
+  spend        Float
+  revenue      Float?
+  ctr          Float
+  cpc          Float
+  cpa          Float?
+  roas         Float?
+  qualityScore Float?
+  position     Float?
+  metadata     Json?
+  createdAt    DateTime   @default(now())
+  adCampaign   AdCampaign @relation(fields: [adCampaignId], references: [id])
+}
+
+model PredictiveAnalytics {
+  id               String   @id @default(cuid())
+  userId           String
+  campaignId       String?
+  modelType        String
+  inputData        Json
+  predictions      Json
+  confidence       Float
+  accuracy         Float?
+  trainingDataSize Int
+  lastTrained      DateTime
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  user             User     @relation(fields: [userId], references: [id])
+}
+
+model BudgetOptimization {
+  id                  String    @id @default(cuid())
+  userId              String
+  campaignId          String?
+  totalBudget         Float
+  optimizedAllocation Json
+  expectedROI         Float
+  confidence          Float
+  recommendations     Json
+  appliedAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  user                User      @relation(fields: [userId], references: [id])
+}
+
+model SEORanking {
+  id           String   @id @default(cuid())
+  userId       String
+  keyword      String
+  url          String
+  position     Int
+  searchVolume Int?
+  difficulty   Float?
+  lastChecked  DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model SocialPostVariation {
+  id             String     @id @default(cuid())
+  originalPostId String
+  content        String
+  caption        String?
+  hashtags       String
+  variationType  String
+  aiScore        Float?
+  selected       Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  originalPost   SocialPost @relation(fields: [originalPostId], references: [id])
+}
+
+model SocialComment {
+  id                 String            @id @default(cuid())
+  postId             String
+  platform           SocialPlatform
+  commentId          String
+  authorId           String?
+  authorName         String
+  authorAvatar       String?
+  content            String
+  sentiment          CommentSentiment?
+  needsResponse      Boolean           @default(false)
+  priority           CommentPriority   @default(NORMAL)
+  suggestedResponses Json?
+  actualResponse     String?
+  respondedAt        DateTime?
+  respondedBy        String?
+  isRead             Boolean           @default(false)
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  post               SocialPost        @relation(fields: [postId], references: [id])
+}
+
+model TrendingTopic {
+  id             String         @id @default(cuid())
+  platform       SocialPlatform
+  topic          String
+  hashtag        String?
+  description    String?
+  volume         Int?
+  growthRate     Float?
+  category       String?
+  relatedTopics  Json?
+  sentiment      String?
+  peakTime       DateTime?
+  expiresAt      DateTime?
+  relevanceScore Float?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model SocialMediaAccount {
+  id             String         @id @default(cuid())
+  userId         String
+  platform       SocialPlatform
+  platformUserId String
+  username       String
+  accessToken    String
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  isActive       Boolean        @default(true)
+  accountMetrics Json?
+  lastSynced     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  schedules      PostSchedule[]
+  user           User           @relation(fields: [userId], references: [id])
+}
+
+model PostSchedule {
+  id                   String             @id @default(cuid())
+  socialMediaAccountId String
+  dayOfWeek            Int
+  timeSlot             String
+  engagementScore      Float?
+  postCount            Int                @default(0)
+  totalEngagement      Int                @default(0)
+  avgEngagementRate    Float?
+  isOptimal            Boolean            @default(false)
+  lastUsed             DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  account              SocialMediaAccount @relation(fields: [socialMediaAccountId], references: [id])
+}
+
+model ContentRecommendation {
+  id                 String         @id @default(cuid())
+  userId             String
+  platform           SocialPlatform
+  contentType        String
+  topic              String
+  style              String
+  frequency          String
+  bestTimes          Json
+  trendingTopics     Json
+  hashtagSuggestions Json
+  contentIdeas       Json
+  confidence         Float
+  reasoning          String?
+  appliedAt          DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  user               User           @relation(fields: [userId], references: [id])
+}
+
+model EngagementAnalytics {
+  id                   String         @id @default(cuid())
+  userId               String
+  platform             SocialPlatform
+  date                 DateTime
+  followers            Int?
+  following            Int?
+  posts                Int?
+  likes                Int?
+  comments             Int?
+  shares               Int?
+  saves                Int?
+  reach                Int?
+  impressions          Int?
+  engagementRate       Float?
+  profileViews         Int?
+  websiteClicks        Int?
+  bestPostingTimes     Json?
+  topPerformingPosts   Json?
+  audienceDemographics Json?
+  contentPerformance   Json?
+  createdAt            DateTime       @default(now())
+  user                 User           @relation(fields: [userId], references: [id])
+}
+
+model Analytics {
+  id         String   @id @default(cuid())
+  userId     String
+  campaignId String?
+  date       DateTime
+  platform   String?
+  metric     String
+  value      Float
+  metadata   Json?
+  createdAt  DateTime @default(now())
+}
+
+model Asset {
+  id           String   @id @default(cuid())
+  userId       String
+  filename     String
+  originalName String
+  mimeType     String
+  size         Int
+  url          String
+  metadata     Json?
+  createdAt    DateTime @default(now())
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  metadata  Json?
+  createdAt DateTime @default(now())
+}
+
+model AdminPermission {
+  id          String      @id @default(cuid())
+  name        String      @unique
+  description String?
+  resource    String
+  action      String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  roles       AdminRole[] @relation("AdminPermissionToAdminRole")
+}
+
+model AdminRole {
+  id          String            @id @default(cuid())
+  name        String            @unique
+  description String?
+  isDefault   Boolean           @default(false)
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  permissions AdminPermission[] @relation("AdminPermissionToAdminRole")
+}
+
+model AdminAuditLog {
+  id         String   @id @default(cuid())
+  adminId    String
+  action     String
+  resource   String
+  resourceId String?
+  oldData    Json?
+  newData    Json?
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+  admin      User     @relation(fields: [adminId], references: [id])
+}
+
+enum CampaignType {
+  SEO
+  ADS
+  SOCIAL
+  EMAIL
+  CONTENT
+  CHATBOT
+}
+
+enum Role {
+  ADMIN
+  USER
+  CLIENT
+}
+
+enum ContentType {
+  BLOG
+  AD_COPY
+  EMAIL
+  SOCIAL_POST
+  PRODUCT_DESCRIPTION
+  VIDEO_SCRIPT
+  CAPTION
+  HEADLINE
+}
+
+enum SocialPlatform {
+  TWITTER
+  INSTAGRAM
+  LINKEDIN
+  FACEBOOK
+  TIKTOK
+  REDDIT
+}
+
+enum AIServiceProvider {
+  OPENAI
+  ANTHROPIC
+  GOOGLE
+  AZURE
+}
+
+enum ChatbotStatus {
+  ACTIVE
+  INACTIVE
+  TRAINING
+  ERROR
+}
+
+enum AdPlatform {
+  GOOGLE_ADS
+  FACEBOOK_ADS
+  INSTAGRAM_ADS
+  LINKEDIN_ADS
+  TWITTER_ADS
+  TIKTOK_ADS
+  BING_ADS
+  YOUTUBE_ADS
+}
+
+enum AdType {
+  SEARCH
+  DISPLAY
+  VIDEO
+  SHOPPING
+  APP_PROMOTION
+  LOCAL
+  PERFORMANCE_MAX
+}
+
+enum AdStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum BidStrategy {
+  MANUAL_CPC
+  TARGET_CPA
+  TARGET_ROAS
+  MAXIMIZE_CLICKS
+  MAXIMIZE_CONVERSIONS
+  TARGET_SPEND
+  ENHANCED_CPC
+}
+
+enum ABTestStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+  PAUSED
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  FAILED
+  ARCHIVED
+}
+
+enum CommentSentiment {
+  POSITIVE
+  NEGATIVE
+  NEUTRAL
+  URGENT
+}
+
+enum CommentPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum WorkflowRunStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum WorkflowJobStatus {
+  PENDING
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+  SKIPPED
+}
+
+enum CampaignAssetStatus {
+  PENDING
+  GENERATING
+  READY
+  FAILED
+}
+
+enum CampaignAssetType {
+  CONTENT
+  IMAGE
+  SOCIAL_POST
+  DOCUMENT
+  DATASET
+}
+
+enum CampaignKeywordStatus {
+  PENDING
+  RESEARCHING
+  COMPLETED
+  FAILED
+}
+
+model CampaignWorkflowTemplate {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  name        String
+  description String?
+  plan        String
+  isActive    Boolean  @default(true)
+  steps       Json
+  metadata    Json?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  workflowRuns WorkflowRun[]
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String
+  used      Boolean  @default(false)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([token])
+  @@index([userId])
+}
+
+model CampaignKeyword {
+  id           String              @id @default(cuid())
+  campaignId   String
+  keyword      String
+  score        Float?
+  searchVolume Int?
+  competition  Float?
+  costPerClick Float?
+  status       CampaignKeywordStatus @default(PENDING)
+  metadata     Json?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  campaign     Campaign            @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, keyword])
+  @@index([campaignId])
+}
+
+model CampaignAsset {
+  id         String            @id @default(cuid())
+  campaignId String
+  userId     String
+  assetType  CampaignAssetType
+  status     CampaignAssetStatus @default(PENDING)
+  title      String?
+  sourceType String?
+  sourceId   String?
+  url        String?
+  metadata   Json?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  campaign   Campaign          @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([userId])
+}
+
+model WorkflowRun {
+  id         String            @id @default(cuid())
+  userId     String
+  campaignId String?
+  templateId String?
+  status     WorkflowRunStatus @default(PENDING)
+  progress   Float             @default(0)
+  pausedAt   DateTime?
+  metadata   Json?
+  startedAt  DateTime?
+  completedAt DateTime?
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  campaign   Campaign?         @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  template   CampaignWorkflowTemplate? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+  jobs       WorkflowJob[]
+
+  @@index([userId])
+  @@index([campaignId])
+}
+
+model WorkflowJob {
+  id          String            @id @default(cuid())
+  runId       String
+  stepId      String
+  status      WorkflowJobStatus @default(PENDING)
+  queueName   String?
+  jobName     String?
+  payload     Json?
+  result      Json?
+  error       String?
+  errorMessage String?
+  metadata    Json?
+  maxAttempts Int?
+  attempts    Int               @default(0)
+  scheduledFor DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+  failedAt    DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  run         WorkflowRun       @relation(fields: [runId], references: [id], onDelete: Cascade)
+}
+
+model HashtagSearch {
+  id          String   @id @default(cuid())
+  userId      String
+  keyword     String
+  status      String   @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED, FAILED
+  totalResults Int?    @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  completedAt DateTime?
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  results     HashtagSearchResult[]
+
+  @@index([userId])
+  @@index([keyword])
+  @@index([status])
+}
+
+model HashtagSearchResult {
+  id              String         @id @default(cuid())
+  searchId       String
+  platform       SocialPlatform
+  keyword        String
+  hashtag        String?
+  postId         String?
+  postUrl        String?
+  authorUsername String?
+  authorId       String?
+  content        String?
+  mediaUrl       String?
+  metrics        Json?          // likes, shares, comments, views, etc.
+  engagementRate Float?
+  postedAt       DateTime?
+  createdAt      DateTime       @default(now())
+  search         HashtagSearch   @relation(fields: [searchId], references: [id], onDelete: Cascade)
+
+  @@index([searchId])
+  @@index([platform])
+  @@index([keyword])
+  @@index([postedAt])
+}
+
+model KeywordCampaign {
+  id                     String         @id @default(cuid())
+  userId                 String
+  businessName           String
+  businessDescription    String
+  keywords               Json           // Array of keywords to monitor
+  platforms              Json           // Array of platforms to scan
+  isActive               Boolean        @default(true)
+  autoEngagementEnabled  Boolean        @default(false)
+  engagementConfig       Json?          // Configuration for automated engagement
+  lastScannedAt          DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  user                   User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  matches                KeywordMatch[]
+  engagementLogs         EngagementLog[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+model KeywordMatch {
+  id                    String   @id @default(cuid())
+  campaignId            String
+  platform              String
+  postId                String
+  commentId             String?
+  content               String   @db.Text
+  author                String
+  authorId              String
+  authorProfileUrl      String?
+  postUrl               String
+  matchedKeywords       Json     // Array of matched keywords
+  timestamp             DateTime @default(now())
+  engagementStatus      String   @default("PENDING") // PENDING, ENGAGED, SKIPPED, FAILED
+  engagementResponse    String?  @db.Text
+  engagementResponseId  String?
+  engagementNote        String?
+  engagedAt             DateTime?
+  sentimentScore        Float?
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  campaign              KeywordCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([platform])
+  @@index([engagementStatus])
+  @@index([timestamp])
+}
+
+model EngagementLog {
+  id         String   @id @default(cuid())
+  campaignId String
+  matchId    String
+  platform   String
+  response   String   @db.Text
+  responseId String?
+  status     String   // SUCCESS, FAILED
+  error      String?
+  createdAt  DateTime @default(now())
+  campaign   KeywordCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([campaignId])
+  @@index([platform])
+  @@index([status])
+}
+
+model SocialAccount {
+  id              String    @id @default(cuid())
+  userId          String
+  platform        String
+  accountId       String
+  username        String?
+  accessToken     String
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  isActive        Boolean   @default(true)
+  accountMetrics  Json?
+  lastSynced      DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+  @@index([userId])
+  @@index([platform])
+  @@index([isActive])
+}
+
+model ScraperJob {
+  id              String          @id @default(cuid())
+  userId          String
+  platform        SocialPlatform
+  keyword         String
+  googlePages     Int             @default(1)
+  replyLimit      Int             @default(5)
+  status          ScraperStatus   @default(PENDING)
+  progress        Int             @default(0)
+  totalComments   Int             @default(0)
+  totalReplies    Int             @default(0)
+  errorMessage    String?
+  startedAt       DateTime?
+  completedAt     DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  comments        ScrapedComment[]
+  replies         ScraperReply[]
+
+  @@index([userId])
+  @@index([platform])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ScrapedComment {
+  id          String          @id @default(cuid())
+  jobId       String
+  postUrl     String
+  username    String?         // Nullable - some platforms may not provide usernames
+  comment     String
+  timePosted  String?
+  hoursAgo    Float?
+  platform    SocialPlatform
+  createdAt   DateTime        @default(now())
+  job         ScraperJob      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  reply       ScraperReply?
+
+  @@index([jobId])
+  @@index([platform])
+  @@index([username])
+}
+
+model ScraperReply {
+  id          String          @id @default(cuid())
+  jobId       String
+  commentId   String          @unique
+  username    String
+  replyText   String
+  status      ReplyStatus     @default(PENDING)
+  errorMessage String?
+  repliedAt   DateTime?
+  createdAt   DateTime        @default(now())
+  job         ScraperJob      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  comment     ScrapedComment  @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([jobId])
+  @@index([status])
+}
+
+enum ScraperStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum ReplyStatus {
+  PENDING
+  SENT
+  FAILED
+}

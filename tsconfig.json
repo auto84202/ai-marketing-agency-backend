@@ -1,0 +1,31 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "declaration": true,
+        "removeComments": true,
+        "emitDecoratorMetadata": true,
+        "experimentalDecorators": true,
+        "allowSyntheticDefaultImports": true,
+        "esModuleInterop": true,
+        "target": "es2021",
+        "sourceMap": true,
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "incremental": true,
+    "strict": true,
+    // Re-enable strict sub-options for full strict type checking
+    "useUnknownInCatchVariables": true,
+    "strictPropertyInitialization": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+        "skipLibCheck": true
+    },
+    "include": [
+        "src",
+        "prisma/seed.ts"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist"
+    ]
+}
