@@ -2,7 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { PythonScraperService } from './python-scraper.service';
 import { CreateScraperJobDto } from './dto/create-scraper-job.dto';
-import { ScraperStatus, ReplyStatus } from '@prisma/client';
+import { ScraperStatus, ReplyStatus, ScrapedComment } from '@prisma/client';
 
 @Injectable()
 export class SocialScraperService {
@@ -144,22 +144,31 @@ export class SocialScraperService {
                 }
             );
 
-            // Save scraped comments to database
+            // Save scraped comments to database in batches to avoid connection pool exhaustion
             if (result.comments && result.comments.length > 0) {
-                const createdComments = await Promise.all(
-                    result.comments.map(async (comment: any) => {
-                        return this.prisma.scrapedComment.create({
-                            data: {
-                                jobId,
-                                postUrl: comment.post_url,
-                                username: comment.username,
-                                comment: comment.comment,
-                                timePosted: comment.time,
-                                platform: dto.platform,
-                            },
-                        });
-                    })
-                );
+                this.logger.log(`Saving ${result.comments.length} comments to database in batches...`);
+                const createdComments: ScrapedComment[] = [];
+                const batchSize = 10; // Process 10 comments at a time
+
+                for (let i = 0; i < result.comments.length; i += batchSize) {
+                    const batch = result.comments.slice(i, i + batchSize);
+                    const batchResults = await Promise.all(
+                        batch.map(async (comment: any) => {
+                            return this.prisma.scrapedComment.create({
+                                data: {
+                                    jobId,
+                                    postUrl: comment.post_url,
+                                    username: comment.username,
+                                    comment: comment.comment,
+                                    timePosted: comment.time,
+                                    platform: dto.platform,
+                                },
+                            });
+                        })
+                    );
+                    createdComments.push(...batchResults);
+                    this.logger.log(`Saved batch ${Math.floor(i / batchSize) + 1}/${Math.ceil(result.comments.length / batchSize)}`);
+                }
 
                 // Save replies if available
                 if (result.replies && result.replies.length > 0) {

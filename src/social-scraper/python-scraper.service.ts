@@ -33,7 +33,7 @@ export class PythonScraperService {
         onProgress?: (progress: ScraperProgress) => void,
     ): Promise<any> {
         const scriptPath = this.getScriptPath(config.platform);
-        
+
         this.logger.log(`Running ${config.platform} scraper with keyword: ${config.keyword}`);
 
         return new Promise((resolve, reject) => {
@@ -61,7 +61,7 @@ export class PythonScraperService {
             pythonProcess.stdout.on('data', (data) => {
                 const chunk = data.toString();
                 outputData += chunk;
-                
+
                 // Parse progress updates from Python script
                 try {
                     const lines = chunk.split('\n');
@@ -76,7 +76,7 @@ export class PythonScraperService {
                 } catch (err) {
                     // Ignore JSON parsing errors
                 }
-                
+
                 this.logger.debug(`Python output: ${chunk}`);
             });
 
@@ -91,7 +91,7 @@ export class PythonScraperService {
                         // Try to extract JSON from the last line of output
                         const lines = outputData.trim().split('\n');
                         let jsonResult = null;
-                        
+
                         // Check last few lines for JSON output
                         for (let i = lines.length - 1; i >= Math.max(0, lines.length - 5); i--) {
                             try {
@@ -103,12 +103,12 @@ export class PythonScraperService {
                                 continue;
                             }
                         }
-                        
+
                         if (jsonResult) {
                             resolve(jsonResult);
                         } else {
                             // If no JSON found, return success with raw output
-                            resolve({ 
+                            resolve({
                                 success: true,
                                 output: outputData,
                                 totalComments: 0,
@@ -117,7 +117,7 @@ export class PythonScraperService {
                         }
                     } catch {
                         // If parsing fails, return raw output
-                        resolve({ 
+                        resolve({
                             success: true,
                             output: outputData,
                             totalComments: 0,
@@ -155,9 +155,9 @@ export class PythonScraperService {
                 return { platform: config.platform, result, error: null };
             } catch (error) {
                 this.logger.error(`Scraper failed for ${config.platform}:`, error);
-                return { 
-                    platform: config.platform, 
-                    result: null, 
+                return {
+                    platform: config.platform,
+                    result: null,
                     error: error instanceof Error ? error.message : String(error)
                 };
             }
@@ -180,6 +180,8 @@ export class PythonScraperService {
             LINKEDIN: 'linkedin_scraper.py',
             REDDIT: 'reddit_scraper.py',
             TWITTER: 'twitter_scraper.py',
+            INSTAGRAM: 'instagram_scraper.py',
+            TIKTOK: 'tiktok_scraper.py',
         };
 
         const scriptName = scriptMap[platform.toUpperCase()];
@@ -243,7 +245,7 @@ except ImportError as e:
 
     async setupChromeProfile(): Promise<any> {
         const scriptPath = join(this.scriptsDir, 'setup_chrome_profile.py');
-        
+
         this.logger.log('Starting Chrome profile setup');
 
         return new Promise((resolve, reject) => {
